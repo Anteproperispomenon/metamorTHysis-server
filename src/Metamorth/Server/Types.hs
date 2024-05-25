@@ -12,7 +12,9 @@ import Data.Aeson.Encoding (string, text)
 
 import Data.Function (on)
 import Data.List (sort, nubBy)
+import Data.Maybe
 import Data.Tuple (swap)
+import Data.Typeable
 
 import Data.Map.Strict qualified as M
 import Data.Set        qualified as S
@@ -24,25 +26,34 @@ import Language.Haskell.TH.Syntax
 
 import Data.Text qualified as T
 
-makeJSONTypes :: Q [Dec]
-makeJSONTypes = do
-  inMapName    <- maybeLookupValue  "inputOrthNameMap"  inputErr
-  outMapName   <- maybeLookupValue "outputOrthNameMap" outputErr
-  inOrthType   <- maybeLookupType  "InOrth"  inOrthErr
-  outOrthType  <- maybeLookupType "OutOrth" outOrthErr
+makeJSONTypes' :: forall io oo. (Ord io, Enum io, Typeable io, Ord oo, Enum oo, Typeable oo) => M.Map String io -> M.Map String oo -> Q [Dec]
+makeJSONTypes' inMapStr outMapStr = do
+  -- These will be joined later on.
+  -- inMapName    <- maybeLookupValue  "inputOrthNameMap"  inputErr
+  -- outMapName   <- maybeLookupValue "outputOrthNameMap" outputErr
+  -- inOrthType   <- maybeLookupType  "InOrth"  inOrthErr
+  -- outOrthType  <- maybeLookupType "OutOrth" outOrthErr
+
+  let inMapText  = M.mapKeys T.pack inMapStr
+      outMapText = M.mapKeys T.pack outMapStr
+      revInMap   = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs  inMapText
+      revOutMap  = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs outMapText
+
+      inList  = [minBound..maxBound] :: [io]
+      outList = [minBound..maxBound] :: [oo]
 
   [d| 
-      inMapText  :: M.Map T.Text $(pure $ ConT inOrthType)
-      inMapText = M.mapKeys T.pack $(pure $ VarE inMapName)
+      -- inMapText  :: M.Map T.Text $(pure $ ConT inOrthType)
+      -- inMapText = M.mapKeys T.pack $(pure $ VarE inMapName)
 
-      outMapText :: M.Map T.Text $(pure $ ConT outOrthType)
-      outMapText = M.mapKeys T.pack $(pure $ VarE outMapName)
+      -- outMapText :: M.Map T.Text $(pure $ ConT outOrthType)
+      -- outMapText = M.mapKeys T.pack $(pure $ VarE outMapName)
 
-      revInMap  :: M.Map $(pure $ ConT  inOrthType) T.Text
-      revInMap  = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs  inMapText
+      -- revInMap  :: M.Map $(pure $ ConT  inOrthType) T.Text
+      -- revInMap  = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs  inMapText
 
-      revOutMap :: M.Map $(pure $ ConT outOrthType) T.Text
-      revOutMap = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs outMapText
+      -- revOutMap :: M.Map $(pure $ ConT outOrthType) T.Text
+      -- revOutMap = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs outMapText
 
       -- Orphan instances, but there's not really a good
       -- place to put these elsewhere.

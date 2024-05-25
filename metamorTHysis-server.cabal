@@ -46,6 +46,7 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , containers
     , servant
     , template-haskell
     , text
@@ -72,6 +73,7 @@ executable metamorTHysis-server-exe
   build-depends:
       aeson
     , base >=4.7 && <5
+    , containers
     , metamorTHysis-server
     , servant
     , template-haskell
@@ -100,6 +102,7 @@ test-suite metamorTHysis-server-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , containers
     , metamorTHysis-server
     , servant
     , template-haskell
