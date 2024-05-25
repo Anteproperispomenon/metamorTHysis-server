@@ -1,8 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Metamorth.Server.Types
-  (
-
+  ( makeJSONTypes
   ) where
 
 import Control.Applicative
@@ -11,11 +10,11 @@ import Data.Aeson
 import Data.Aeson.Encoding (string, text)
 
 import Data.Function (on)
-import Data.List (sort, nubBy)
+import Data.List (nubBy)
 import Data.Tuple (swap)
 
 import Data.Map.Strict qualified as M
-import Data.Set        qualified as S
+-- import Data.Set        qualified as S
 
 import Metamorth.Server.Helpers
 
@@ -48,12 +47,12 @@ makeJSONTypes = do
       -- place to put these elsewhere.
       instance FromJSON $(pure $ ConT inOrthType) where
         parseJSON = withText "InOrth" $ \txt -> case (M.lookup (T.toLower txt) inMapText) of
-          Nothing -> fail $ "Couldn't parse \"" ++ (T.unpack txt) ++ "\" as an input orthography."
+          Nothing -> fail $ "Couldn't parse \"" ++ T.unpack txt ++ "\" as an input orthography."
           (Just iorth) -> return iorth
       
       instance FromJSON $(pure $ ConT outOrthType) where
         parseJSON = withText "OutOrth" $ \txt -> case (M.lookup (T.toLower txt) outMapText) of
-          Nothing -> fail $ "Couldn't parse \"" ++ (T.unpack txt) ++ "\" as an output orthography."
+          Nothing -> fail $ "Couldn't parse \"" ++ T.unpack txt ++ "\" as an output orthography."
           (Just oorth) -> return oorth
         
       -- These next two should have declarations generated using
@@ -65,7 +64,7 @@ makeJSONTypes = do
           Nothing    -> String $ T.pack $ drop 2 $ show val -- temp?
         toEncoding val = case (M.lookup val revInMap) of
           (Just txt) -> text txt
-          Nothing    -> string drop 2 $ show val -- temp?
+          Nothing    -> string $ drop 2 $ show val -- temp?
 
       instance ToJSON $(pure $ ConT outOrthType) where
         toJSON val = case (M.lookup val revOutMap) of
@@ -73,7 +72,7 @@ makeJSONTypes = do
           Nothing    -> String $ T.pack $ drop 3 $ show val -- temp?
         toEncoding val = case (M.lookup val revOutMap) of
           (Just txt) -> text txt
-          Nothing    -> string drop 3 $ show val -- temp?
+          Nothing    -> string $ drop 3 $ show val -- temp?
 
       -- parseInType :: T.Text -> Maybe $(pure $ ConT inOrthType)
       -- parseInType txt = M.lookup (T.toLower txt) $(pure $ VarE inMapName)
@@ -93,11 +92,19 @@ makeJSONTypes = do
           <*> (parseInType  <$> ((v .:  "input") <|> (v .:  "inputOrth") <|> (v .:  "inOrth")))
           <*> (parseOutType <$> ((v .: "output") <|> (v .: "outputOrth") <|> (v .: "outOrth")))
       
-      -- instance ToJSON ConvertMessage where
-      --  toJSON (ConvertMessage txt iOrth oOrth)
-        
+      instance ToJSON ConvertMessage where
+        toJSON (ConvertMessage txt iOrth oOrth) = object
+          [ "text"   .= txt
+          , "input"  .= iOrth
+          , "output" .= oOrth
+          ]
+        toEncoding (ConvertMessage txt iOrth oOrth) = pairs
+          (  "text"   .= txt
+          <> "input"  .= iOrth
+          <> "output" .= oOrth
+          )
 
-  |]
+   |]
 
 
 
