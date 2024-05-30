@@ -27,6 +27,7 @@ library
   exposed-modules:
       Lib
       Metamorth.Lift.Pat
+      Metamorth.Server.ForOutput.Types
       Metamorth.Server.Helpers
       Metamorth.Server.Types
       Metamorth.Server.Types.Embedded

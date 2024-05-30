@@ -203,37 +203,6 @@ makeJSONTypes inputMap outputMap  = do
 
         toEncoding (ConvertQuery x) = toEncoding x
         toEncoding InformationQuery = text "info"
-      
-      -- Now, the converted message:
-      data ResponseMessage
-        = SuccessConvert T.Text
-        | PartialConvert T.Text T.Text
-        | FailedConvert  T.Text
-        deriving (Show, Eq)
-      
-      instance ToJSON ResponseMessage where
-        toJSON (SuccessConvert txt) = object
-          [ "text"  .= txt ]
-        toJSON (PartialConvert txt err) = object
-          [ "text"  .= txt, "error" .= err ]
-        toJSON (FailedConvert err) = object
-          [ "error" .= err ]
-        toEncoding (SuccessConvert txt) = pairs
-          ( "text"  .= txt )
-        toEncoding (PartialConvert txt err) = pairs
-          ( "text"  .= txt <> "error" .= err )
-        toEncoding (FailedConvert err) = pairs
-          ( "error" .= err )
-      
-      instance FromJSON ResponseMessage where
-        parseJSON = withObject "ResponseMessage" $ \v -> mkVal =<< (,)
-            <$> v .:? "text"
-            <*> v .:? "error"
-          where
-            mkVal (Just txt, Nothing ) = return $ SuccessConvert txt
-            mkVal (Just txt, Just err) = return $ PartialConvert txt err
-            mkVal (Nothing , Just err) = return $ FailedConvert  err
-            mkVal _ = fail "Couldn't parse response object."
 
    |]
    
