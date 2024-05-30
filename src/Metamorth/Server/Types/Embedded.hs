@@ -35,10 +35,13 @@ import LiftType
 
 makeJSONTypes 
   :: forall iorth oorth. (Show iorth, Show oorth, Ord iorth, Ord oorth, Enum iorth, Enum oorth, Lift iorth, Lift oorth, Bounded iorth, Bounded oorth, Typeable iorth, Typeable oorth) 
-  => M.Map String iorth
-  -> M.Map String oorth
+  => M.Map String (iorth)
+  -> M.Map String (oorth, String)
   -> Q [Dec]
-makeJSONTypes inputMap outputMap  = do
+makeJSONTypes inputMap' outputMap'  = do
+  let inputMap  = inputMap'
+      outputMap = M.map fst outputMap'
+ 
   -- inMapName    <- maybeLookupValue  "inputOrthNameMap"  inputErr
   -- outMapName   <- maybeLookupValue "outputOrthNameMap" outputErr
   -- inOrthType   <- maybeLookupType  "InOrth"  inOrthErr
@@ -103,12 +106,12 @@ makeJSONTypes inputMap outputMap  = do
       (outClauses1, outClauses2) = unzip outClauses
 
   -- Finally, actually creating the instance declarations...
-  let inOrthInstance = InstanceD Nothing [] inOrthTypeX
+  let inOrthInstance = InstanceD Nothing [] (AppT (ConT ''ToJSON) inOrthTypeX)
         [ FunD 'toJSON inClauses1
         , FunD 'toEncoding inClauses2
         ]
 
-  let outOrthInstance = InstanceD Nothing [] outOrthTypeX
+  let outOrthInstance = InstanceD Nothing [] (AppT (ConT ''ToJSON) outOrthTypeX)
         [ FunD 'toJSON outClauses1
         , FunD 'toEncoding outClauses2
         ]
@@ -148,12 +151,6 @@ makeJSONTypes inputMap outputMap  = do
           Nothing    -> string $ drop 3 $ show val -- temp?
       -}
 
-      -- parseInType :: T.Text -> Maybe $(pure $ ConT inOrthType)
-      -- parseInType txt = M.lookup (T.toLower txt) $(pure $ VarE inMapName)
-    
-      -- parseOutType :: T.Text -> Maybe $(pure $ ConT outOrthType)
-      -- parseOutType txt = M.lookup (T.toLower txt) $(pure $ VarE outMapName)
-
       data ConvertMessage = ConvertMessage
         { cmInputText  :: T.Text
         , cmInputOrth  :: $inOrthType
@@ -163,8 +160,8 @@ makeJSONTypes inputMap outputMap  = do
       instance FromJSON ConvertMessage where
         parseJSON = withObject "ConvertMessage" $ \v -> ConvertMessage
           <$> v .: "text"
-          <*> (parseInType  <$> ((v .:  "input") <|> (v .:  "inputOrth") <|> (v .:  "inOrth")))
-          <*> (parseOutType <$> ((v .: "output") <|> (v .: "outputOrth") <|> (v .: "outOrth")))
+          <*> ((v .:  "input") <|> (v .:  "inputOrth") <|> (v .:  "inOrth"))
+          <*> ((v .: "output") <|> (v .: "outputOrth") <|> (v .: "outOrth"))
       
       instance ToJSON ConvertMessage where
         toJSON (ConvertMessage txt iOrth oOrth) = object
@@ -187,13 +184,13 @@ makeJSONTypes inputMap outputMap  = do
       instance FromJSON QueryMessage where
         parseJSON v = (ConvertQuery <$> parseJSON @ConvertMessage v) <|>
           withText "QueryMessage" (\txt -> case T.toLower txt of
-              "info"          -> InformationQuery
-              "information"   -> InformationQuery
-              "details"       -> InformationQuery
-              "help"          -> InformationQuery
-              "list"          -> InformationQuery
-              "orth"          -> InformationQuery
-              "orthographies" -> InformationQuery
+              "info"          -> return InformationQuery
+              "information"   -> return InformationQuery
+              "details"       -> return InformationQuery
+              "help"          -> return InformationQuery
+              "list"          -> return InformationQuery
+              "orth"          -> return InformationQuery
+              "orthographies" -> return InformationQuery
               _ -> fail "Unrecognised message."
             ) v
       

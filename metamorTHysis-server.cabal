@@ -25,7 +25,6 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
       Metamorth.Lift.Pat
       Metamorth.Server.ForOutput.Types
       Metamorth.Server.Helpers

@@ -37,7 +37,7 @@ makeJSONTypes = do
       inMapText = M.mapKeys T.pack $(pure $ VarE inMapName)
 
       outMapText :: M.Map T.Text $(pure $ ConT outOrthType)
-      outMapText = M.mapKeys T.pack $(pure $ VarE outMapName)
+      outMapText = M.mapKeys T.pack $ M.map fst $(pure $ VarE outMapName)
 
       revInMap  :: M.Map $(pure $ ConT  inOrthType) T.Text
       revInMap  = M.fromList $ map swap $ nubBy ((==) `on` snd) $ M.assocs  inMapText
@@ -92,8 +92,8 @@ makeJSONTypes = do
       instance FromJSON ConvertMessage where
         parseJSON = withObject "ConvertMessage" $ \v -> ConvertMessage
           <$> v .: "text"
-          <*> (parseInType  <$> ((v .:  "input") <|> (v .:  "inputOrth") <|> (v .:  "inOrth")))
-          <*> (parseOutType <$> ((v .: "output") <|> (v .: "outputOrth") <|> (v .: "outOrth")))
+          <*> ((v .:  "input") <|> (v .:  "inputOrth") <|> (v .:  "inOrth"))
+          <*> ((v .: "output") <|> (v .: "outputOrth") <|> (v .: "outOrth"))
       
       instance ToJSON ConvertMessage where
         toJSON (ConvertMessage txt iOrth oOrth) = object
@@ -116,13 +116,13 @@ makeJSONTypes = do
       instance FromJSON QueryMessage where
         parseJSON v = (ConvertQuery <$> parseJSON @ConvertMessage v) <|>
           withText "QueryMessage" (\txt -> case T.toLower txt of
-              "info"          -> InformationQuery
-              "information"   -> InformationQuery
-              "details"       -> InformationQuery
-              "help"          -> InformationQuery
-              "list"          -> InformationQuery
-              "orth"          -> InformationQuery
-              "orthographies" -> InformationQuery
+              "info"          -> return InformationQuery
+              "information"   -> return InformationQuery
+              "details"       -> return InformationQuery
+              "help"          -> return InformationQuery
+              "list"          -> return InformationQuery
+              "orth"          -> return InformationQuery
+              "orthographies" -> return InformationQuery
               _ -> fail "Unrecognised message."
             ) v
       
