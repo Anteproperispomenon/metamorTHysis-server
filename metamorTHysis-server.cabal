@@ -26,8 +26,10 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Metamorth.Lift.Pat
       Metamorth.Server.Helpers
       Metamorth.Server.Types
+      Metamorth.Server.Types.Embedded
   other-modules:
       Paths_metamorTHysis_server
   autogen-modules:
@@ -47,6 +49,7 @@ library
       aeson
     , base >=4.7 && <5
     , containers
+    , lift-type
     , servant
     , template-haskell
     , text
@@ -74,6 +77,7 @@ executable metamorTHysis-server-exe
       aeson
     , base >=4.7 && <5
     , containers
+    , lift-type
     , metamorTHysis-server
     , servant
     , template-haskell
@@ -103,6 +107,7 @@ test-suite metamorTHysis-server-test
       aeson
     , base >=4.7 && <5
     , containers
+    , lift-type
     , metamorTHysis-server
     , servant
     , template-haskell
