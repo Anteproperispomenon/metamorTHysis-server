@@ -29,7 +29,7 @@ maybeLookupType typName err = do
 
   
 -- | Invert a map. From metamorTHysis-cli
-invertOrthMap :: (Ord inOrth) => M.Map String inOrth -> M.Map inOrth (S.Set String)
+invertOrthMap :: (Ord inOrth, Ord txt) => M.Map txt inOrth -> M.Map inOrth (S.Set txt)
 invertOrthMap = M.foldlWithKey (\mp' k val -> insertWithElse S.insert S.singleton val k mp') M.empty
 -- invertOrthMap inMap = M.foldlWithKey (\mp' k val -> insertWithElse S.insert S.singleton val k mp') M.empty inMap
 

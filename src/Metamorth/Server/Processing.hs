@@ -4,12 +4,14 @@ module Metamorth.Server.Processing
   ( makeProcessFunc ) where
 
 import Control.Applicative
+import Control.Monad
 
 import Data.Functor.Identity
 
 import Data.Maybe
 
 import Data.Map.Strict qualified as M
+import Data.Set        qualified as S
 
 import Metamorth.Server.ForOutput.Types
 
@@ -62,9 +64,10 @@ makeProcessFunc = do
   inputSelector  <- maybeLookupValue "cmInputOrth"  "Can't find the input orth selector."
   outputSelector <- maybeLookupValue "cmOutputOrth" "Can't find the output orth selector."
 
-  let conMsgTQ  = pure $ ConT convertMsgType
+  let conMsgTQ  = pureQ $ ConT convertMsgType
+      qryMsgTQ  = pureQ $ ConT queryMsgType
       -- infoQryEQ = pure $ ConT infoQueryType
-      infoQryPQ = pure $ ConP infoQueryCons [] []
+      infoQryPQ = pureQ $ ConP infoQueryCons [] []
       -- convQryNQ = pure convQueryCons
       
 {-
@@ -78,14 +81,20 @@ makeProcessFunc = do
   cmName <- newName "cm"
   
   [d|
-      revInMap :: M.Map $(pure $ ConT inOrthType) String
-      revInMap = invertOrthMap $(pure $ VarE inMapName)
+      inMapFixed :: M.Map T.Text $(pure $ ConT inOrthType)
+      inMapFixed  = M.mapKeys T.pack $(pure $ VarE inMapName)
 
-      revOutMap :: M.Map $(pure $ ConT outOrthType) String
-      revOutMap = invertOrthMap $(pure $ VarE inMapName)
+      outMapFixed :: M.Map T.Text $(pure $ ConT outOrthType)
+      outMapFixed = M.mapKeys T.pack $ M.map fst $(pure $ VarE outMapName)
+
+      revInMap :: M.Map $(pure $ ConT inOrthType) (S.Set T.Text)
+      revInMap = invertOrthMap inMapFixed
+
+      revOutMap :: M.Map $(pure $ ConT outOrthType) (S.Set T.Text)
+      revOutMap = invertOrthMap outMapFixed
 
       mainLangName :: T.Text
-      mainLangName = fromMaybe "Unknown Language" (fst $(pure $ VarE languageDet))
+      mainLangName = fromMaybe "Unknown Language" (T.pack <$> fst $(pure $ VarE languageDet))
 
       mainOrthDescs :: M.Map T.Text T.Text
       mainOrthDescs = M.mapKeys T.pack $ M.map T.pack $ snd $(pure $ VarE languageDet)
@@ -93,18 +102,18 @@ makeProcessFunc = do
       mainOrthData :: [OrthData]
       mainOrthData = runIdentity $ forM (M.toAscList mainOrthDescs) $ \(orthName, orthDesc) -> do
         -- Try looking up the name to find the constructor...
-        let inConstM  = M.lookup orthName $(pure $ VarE  inMapName)
-            outConstM = M.lookup orthName $(pure $ VarE outMapName)
+        let inConstM  = M.lookup orthName inMapFixed
+            outConstM = M.lookup orthName outMapFixed
             -- Use the constructor to lookup the possible names...
             inNamesM  = inConstM  >>= \cstr -> M.lookup cstr revInMap
             outNamesM = outConstM >>= \cstr -> M.lookup cstr revOutMap
             -- See which one (if any) worked.
             orthNoms  = inNamesM <|> outNamesM
-        return $ OrthData orthName orthDesc (fromMaybe [] orthNoms)
+        return $ OrthData orthName orthDesc (fromMaybe [] (S.toList <$> orthNoms))
         
 
-      processInput :: $conMsgTQ -> ResponseValue
-      processInput $infoQryPQ = InfoResponse (ConverterInfo mainLangName [])
+      processInput :: $qryMsgTQ -> ResponseValue
+      processInput $infoQryPQ = InfoResponse (ConverterInfo mainLangName mainOrthData)
       processInput $(pure (ConP convQueryCons [] [VarP cmName])) = 
         case ($(pure $ multiAppE 
                   (VarE mainFunction) 
@@ -159,4 +168,6 @@ outOrthErr = unlines
   , "orthography file."
   ]
 
-
+pureQ :: a -> Q a
+pureQ = pure
+{-# INLINE pureQ #-}
