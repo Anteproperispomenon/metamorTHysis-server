@@ -177,7 +177,33 @@ makeJSONTypes inputMap outputMap  = do
           <> "input"  .= iOrth
           <> "output" .= oOrth
           )
-  
+
+      -- | Version that allows querying of the converter in general.
+      data QueryMessage
+        = ConvertQuery ConvertMessage
+        | InformationQuery
+        deriving (Show, Eq)
+      
+      instance FromJSON QueryMessage where
+        parseJSON v = (ConvertQuery <$> parseJSON @ConvertMessage v) <|>
+          withText "QueryMessage" (\txt -> case T.toLower txt of
+              "info"          -> InformationQuery
+              "information"   -> InformationQuery
+              "details"       -> InformationQuery
+              "help"          -> InformationQuery
+              "list"          -> InformationQuery
+              "orth"          -> InformationQuery
+              "orthographies" -> InformationQuery
+              _ -> fail "Unrecognised message."
+            ) v
+      
+      instance ToJSON QueryMessage where
+        toJSON (ConvertQuery x) = toJSON x
+        toJSON InformationQuery = String "info"
+
+        toEncoding (ConvertQuery x) = toEncoding x
+        toEncoding InformationQuery = text "info"
+      
       -- Now, the converted message:
       data ResponseMessage
         = SuccessConvert T.Text
