@@ -29,6 +29,7 @@ library
       Metamorth.Lift.Pat
       Metamorth.Server.ForOutput.Types
       Metamorth.Server.Helpers
+      Metamorth.Server.Processing
       Metamorth.Server.Types
       Metamorth.Server.Types.Embedded
   other-modules:
