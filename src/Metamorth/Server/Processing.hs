@@ -8,6 +8,7 @@ import Control.Monad
 
 import Data.Functor.Identity
 
+import Data.List (find)
 import Data.Maybe
 
 import Data.Map.Strict qualified as M
@@ -40,6 +41,17 @@ import Data.Text.Lazy.Encoding qualified as TLE
         deriving (Show, Eq)
 
 -}
+
+-- notInYet :: (Eq a) => a -> [(a,b)] -> Bool
+-- notInYet x ps = isNothing $ find (\(y,_) -> x == y) ps
+
+notInYet' :: T.Text -> [OrthData] -> Bool
+notInYet' x ps = isNothing $ find (\(OrthData {orthName = nom}) -> (T.toLower nom) == (T.toLower x)) ps
+
+{-# INLINE foldlx #-}
+foldlx :: (Foldable t) => b -> t a -> (b -> a -> b) -> b
+foldlx x xs f = foldl f x xs
+
 
 makeProcessFunc :: Q [Dec]
 makeProcessFunc = do
@@ -93,6 +105,15 @@ makeProcessFunc = do
       revOutMap :: M.Map $(pure $ ConT outOrthType) (S.Set T.Text)
       revOutMap = invertOrthMap outMapFixed
 
+      revInMap' :: M.Map String (S.Set T.Text)
+      revInMap' = M.mapKeys (drop 2 . show) revInMap
+
+      revOutMap' :: M.Map String (S.Set T.Text)
+      revOutMap' = M.mapKeys (drop 3 . show) revOutMap
+
+      revAllMap :: M.Map String (S.Set T.Text)
+      revAllMap = M.union revInMap' revOutMap'
+
       mainLangName :: T.Text
       mainLangName = fromMaybe "Unknown Language" (T.pack <$> fst $(pure $ VarE languageDet))
 
@@ -109,11 +130,19 @@ makeProcessFunc = do
             outNamesM = outConstM >>= \cstr -> M.lookup cstr revOutMap
             -- See which one (if any) worked.
             orthNoms  = inNamesM <|> outNamesM
-        return $ OrthData orthName orthDesc (fromMaybe [] (S.toList <$> orthNoms))
-        
+        return $ OrthData orthName (Just orthDesc) (fromMaybe [] (S.toList <$> orthNoms))
+      
+      -- If an orthography doesn't have a description, it isn't listed
+      -- in the description map. In which case, we add it from here,
+      -- without a description.
+      mainOrthData2 :: [OrthData]
+      mainOrthData2 = foldlx mainOrthData (M.assocs revAllMap) $ \acc (orth, args) ->
+        if (notInYet' (T.pack orth) acc)
+          then acc ++ [OrthData (T.pack orth) Nothing (S.toList args)]
+          else acc
 
       processInput :: $qryMsgTQ -> ResponseValue
-      processInput $infoQryPQ = InfoResponse (ConverterInfo mainLangName mainOrthData)
+      processInput $infoQryPQ = InfoResponse (ConverterInfo mainLangName mainOrthData2)
       processInput $(pure (ConP convQueryCons [] [VarP cmName])) = 
         case ($(pure $ multiAppE 
                   (VarE mainFunction) 

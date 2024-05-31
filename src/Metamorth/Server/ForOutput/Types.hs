@@ -47,14 +47,14 @@ instance FromJSON ResponseMessage where
       
 data OrthData = OrthData
   { orthName :: T.Text
-  , orthDesc :: T.Text
+  , orthDesc :: Maybe T.Text
   , orthArgs :: [T.Text] -- the short names for this orthography
   } deriving (Show, Eq)
 
 instance FromJSON OrthData where
   parseJSON = withObject "OrthData" $ \v -> OrthData
     <$> v .: "name"
-    <*> ((v .: "desc") <|> (v .: "description"))
+    <*> ((Just <$> v .: "desc") <|> (v .:? "description"))
     <*> ((v .: "args") <|> (v .: "short-names"))
       
 instance ToJSON OrthData where
