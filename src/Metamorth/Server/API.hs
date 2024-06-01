@@ -21,6 +21,8 @@ import Servant
 import Metamorth.Server.ForOutput.Types 
 import Metamorth.Server.Helpers
 
+import Network.Wai.Handler.Warp (run)
+
 makeServantTypes :: Q [Dec]
 makeServantTypes = do
   
@@ -78,6 +80,9 @@ makeServantTypes = do
         
         serveQueries :: Application
         serveQueries = serve (Proxy @MainAPI) mainServer
+
+        runServer :: Int -> IO ()
+        runServer pn = run pn serveQueries
 
     |]
 
