@@ -121,16 +121,16 @@ makeProcessFunc = do
       mainOrthDescs = M.mapKeys T.pack $ M.map T.pack $ snd $(pure $ VarE languageDet)
 
       mainOrthData :: [OrthData]
-      mainOrthData = runIdentity $ forM (M.toAscList mainOrthDescs) $ \(orthName, orthDesc) -> do
+      mainOrthData = runIdentity $ forM (M.toAscList mainOrthDescs) $ \(orthNameX, orthDescX) -> do
         -- Try looking up the name to find the constructor...
-        let inConstM  = M.lookup orthName inMapFixed
-            outConstM = M.lookup orthName outMapFixed
+        let inConstM  = M.lookup orthNameX inMapFixed
+            outConstM = M.lookup orthNameX outMapFixed
             -- Use the constructor to lookup the possible names...
             inNamesM  = inConstM  >>= \cstr -> M.lookup cstr revInMap
             outNamesM = outConstM >>= \cstr -> M.lookup cstr revOutMap
             -- See which one (if any) worked.
             orthNoms  = inNamesM <|> outNamesM
-        return $ OrthData orthName (Just orthDesc) (fromMaybe [] (S.toList <$> orthNoms))
+        return $ OrthData orthNameX (Just orthDescX) (fromMaybe [] (S.toList <$> orthNoms))
       
       -- If an orthography doesn't have a description, it isn't listed
       -- in the description map. In which case, we add it from here,
@@ -140,6 +140,9 @@ makeProcessFunc = do
         if (notInYet' (T.pack orth) acc)
           then acc ++ [OrthData (T.pack orth) Nothing (S.toList args)]
           else acc
+      
+      mainInfo :: ConverterInfo
+      mainInfo = ConverterInfo mainLangName mainOrthData2
 
       processInput :: $qryMsgTQ -> ResponseValue
       processInput $infoQryPQ = InfoResponse (ConverterInfo mainLangName mainOrthData2)
