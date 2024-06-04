@@ -21,7 +21,7 @@ import Servant
 import Metamorth.Server.ForOutput.Types 
 import Metamorth.Server.Helpers
 
-import Network.Wai.Handler.Warp (run)
+import Network.Wai.Handler.Warp (run, setTimeout, defaultSettings, setPort, runSettings)
 
 makeServantTypes :: Q [Dec]
 makeServantTypes = do
@@ -33,7 +33,7 @@ makeServantTypes = do
   procQuery <- maybeLookupValue "processInput" "Couldn't find \"processInput\" function."
 
   qryCon1 <- maybeLookupValue "ConvertQuery"     "Couldn't find \"ConvertQuery\" constructor."
-  qryCon2 <- maybeLookupValue "InformationQuery" "Couldn't find \"InformationQuery\" constructor."
+  -- qryCon2 <- maybeLookupValue "InformationQuery" "Couldn't find \"InformationQuery\" constructor."
    
   -- simple name
   -- nm <- newName "nm"
@@ -56,7 +56,7 @@ makeServantTypes = do
         type QueryAPI   = "query"   :> ReqBody '[JSON] $qryMsgQ :> Post '[JSON] ResponseValue
 
         -- Fallback Query
-        type FallbackAPI = "" :> Get '[PlainText, JSON] T.Text
+        type FallbackAPI = Get '[PlainText, JSON] T.Text
 
         type MainAPI = InfoAPI :<|> ConvertAPI :<|> QueryAPI :<|> FallbackAPI
 
@@ -81,10 +81,16 @@ makeServantTypes = do
         serveQueries :: Application
         serveQueries = serve (Proxy @MainAPI) mainServer
 
-        runServer :: Int -> IO ()
-        runServer pn = run pn serveQueries
+        runServerBasic :: Int -> IO ()
+        runServerBasic pn = run pn serveQueries
+
+        runServer :: Int -> Int -> IO ()
+        runServer pn timout = runSettings stg serveQueries
+          where stg = setTimeout timout $ setPort pn defaultSettings
 
     |]
+  
+  return () -- temp
 
   -- In case we want to add extra stuff from a separate quote.
   return mainDecs

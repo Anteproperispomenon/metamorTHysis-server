@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -27,12 +27,16 @@ library
   exposed-modules:
       Metamorth.Lift.Pat
       Metamorth.Server.API
+      Metamorth.Server.CLI
+      Metamorth.Server.ForOutput.CLI
       Metamorth.Server.ForOutput.Types
       Metamorth.Server.Helpers
       Metamorth.Server.Processing
       Metamorth.Server.Types
       Metamorth.Server.Types.Embedded
   other-modules:
+      Paths_metamorTHysis_server
+  autogen-modules:
       Paths_metamorTHysis_server
   hs-source-dirs:
       src
@@ -52,6 +56,7 @@ library
     , base >=4.7 && <5
     , containers
     , lift-type
+    , optparse-applicative
     , servant
     , servant-server
     , template-haskell
@@ -63,6 +68,8 @@ library
 executable metamorTHysis-server-exe
   main-is: Main.hs
   other-modules:
+      Paths_metamorTHysis_server
+  autogen-modules:
       Paths_metamorTHysis_server
   hs-source-dirs:
       app
@@ -83,6 +90,7 @@ executable metamorTHysis-server-exe
     , containers
     , lift-type
     , metamorTHysis-server
+    , optparse-applicative
     , servant
     , servant-server
     , template-haskell
@@ -95,6 +103,8 @@ test-suite metamorTHysis-server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Paths_metamorTHysis_server
+  autogen-modules:
       Paths_metamorTHysis_server
   hs-source-dirs:
       test
@@ -115,6 +125,7 @@ test-suite metamorTHysis-server-test
     , containers
     , lift-type
     , metamorTHysis-server
+    , optparse-applicative
     , servant
     , servant-server
     , template-haskell

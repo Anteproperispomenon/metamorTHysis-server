@@ -35,6 +35,7 @@ dependencies:
 - aeson
 - containers
 - lift-type
+- optparse-applicative
 - servant
 - servant-server
 - template-haskell
