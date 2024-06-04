@@ -52,9 +52,11 @@ notInYet' x ps = isNothing $ find (\(OrthData {orthName = nom}) -> (T.toLower no
 foldlx :: (Foldable t) => b -> t a -> (b -> a -> b) -> b
 foldlx x xs f = foldl f x xs
 
-
 makeProcessFunc :: Q [Dec]
-makeProcessFunc = do
+makeProcessFunc = makeProcessFunc' Nothing Nothing
+
+makeProcessFunc' :: Maybe String -> Maybe String -> Q [Dec]
+makeProcessFunc' mJsFile mHtmlFile = do
   inMapName    <- maybeLookupValue  "inputOrthNameMap"  inputErr
   outMapName   <- maybeLookupValue "outputOrthNameMap" outputErr
   inOrthType   <- maybeLookupType  "InOrth"  inOrthErr
@@ -75,6 +77,11 @@ makeProcessFunc = do
   textSelector   <- maybeLookupValue "cmInputText"  "Can't find the input text selector."
   inputSelector  <- maybeLookupValue "cmInputOrth"  "Can't find the input orth selector."
   outputSelector <- maybeLookupValue "cmOutputOrth" "Can't find the output orth selector."
+
+  -- Setting up code for generating the javascript etc...
+  jsRslt <- case mJsFile of
+    Nothing -> return Nothing
+
 
   let conMsgTQ  = pureQ $ ConT convertMsgType
       qryMsgTQ  = pureQ $ ConT queryMsgType
